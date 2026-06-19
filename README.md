@@ -8,7 +8,34 @@ The effect is rendered as a window decoration under normal client surfaces and a
 
 ## Enhancements (this fork)
 
-This is a fork of [0xdilo/hyprland-liquid-glass](https://github.com/0xdilo/hyprland-liquid-glass) with added features on top of the original plugin. All credit for the base plugin and the Shoji-style glass material goes to the original author (see the rest of this README and the License section). This section documents only what this fork adds.
+This is a fork of [0xdilo/hyprland-liquid-glass](https://github.com/0xdilo/hyprland-liquid-glass) with added features on top of the original plugin. All credit for the base plugin and the Shoji-style glass material goes to the original author (see the rest of this README and the License section). This section documents everything this fork adds on top of upstream:
+
+- **Hyprland 0.55.x compatibility** — updated the render-pass element access to the 0.55.x API (`m_passElements` entries are accessed by value, not through a pointer) so the plugin builds and loads on current Hyprland. Tested on **0.55.4**. No config; it's purely a build/runtime fix. Plugins are ABI-sensitive, so still rebuild against your running Hyprland headers.
+- **Per-surface distortion scaling** — independently scale the glass distortion (refraction + chromatic aberration + lensing) per window vs. per layer-shell surface, including per-namespace overrides. See below.
+- **Cursor-following refraction + highlight** — a soft lens that tracks the mouse pointer across glassed surfaces. See below.
+
+### Per-surface distortion scaling
+
+Upstream applies the same distortion strength everywhere. This fork adds multipliers that scale only the **refraction**, **chromatic aberration**, and **lens distortion** of a surface (the blur, tint, and opacity are untouched), so you can keep windows strongly refractive while toning the effect down on a bar or notifications.
+
+- `window_distortion_scale` multiplies distortion for all managed windows.
+- `layer_distortion_scale` is the default multiplier for matched layer-shell surfaces.
+- `layer_distortion_overrides` sets per-namespace multipliers that win over `layer_distortion_scale`, as a comma-separated `namespace:scale` list (case-insensitive namespace match).
+
+```ini
+plugin:liquidglass {
+    window_distortion_scale    = 1.0   # windows at full strength
+    layer_distortion_scale     = 1.0   # default for matched layers
+    # Tone specific layer namespaces down (or up). Overrides the default above.
+    layer_distortion_overrides = waybar:0.1,notifications:0.4,wofi:0.4
+}
+```
+
+| Option | Default | Notes |
+| --- | ---: | --- |
+| `window_distortion_scale` | `1.0` | Distortion multiplier for managed windows. Clamped to `0.0`–`4.0`. `0` disables distortion (keeps blur/tint). |
+| `layer_distortion_scale` | `1.0` | Default distortion multiplier for matched layer-shell surfaces. Clamped to `0.0`–`4.0`. |
+| `layer_distortion_overrides` | empty | Per-namespace multipliers as `namespace:scale` pairs, comma-separated (e.g. `waybar:0.1,notifications:0.4`). A match overrides `layer_distortion_scale`; each value is clamped to `0.0`–`4.0`. |
 
 ### Cursor-following refraction + highlight
 
