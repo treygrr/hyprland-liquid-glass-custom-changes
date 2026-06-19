@@ -1,0 +1,9 @@
+[repository]
+name = "hyprland-liquid-glass"
+authors = ["lain"]
+description = "Liquid Glass inspired per-window shader decoration for Hyprland"
+
+[liquidglass]
+description = "Liquid Glass window effect"
+output = "liquidglass.so"
+build = ["make"]
