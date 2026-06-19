@@ -28,6 +28,10 @@ struct SGlassUniforms {
     GLint cursorRefraction = -1;
     GLint cursorColor = -1;
     GLint cursorColorAlpha = -1;
+    GLint cursorBlendMode = -1;
+    GLint cursorStretchDir = -1;
+    GLint cursorStretch = -1;
+    GLint cursorTrail = -1;
 };
 
 struct SBlurUniforms {

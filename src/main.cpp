@@ -370,7 +370,9 @@ static void addConfigValues() {
                     addStringConfig(CFG_LAYER_DISTORTION_OVERRIDES, DEFAULT_LAYER_DISTORTION_OVERRIDES) &&
                     addIntConfig(CFG_CURSOR_ENABLED, DEFAULT_CURSOR_ENABLED) && addFloatConfig(CFG_CURSOR_RADIUS, DEFAULT_CURSOR_RADIUS) &&
                     addFloatConfig(CFG_CURSOR_INTENSITY, DEFAULT_CURSOR_INTENSITY) && addFloatConfig(CFG_CURSOR_REFRACTION, DEFAULT_CURSOR_REFRACTION) &&
-                    addIntConfig(CFG_CURSOR_COLOR, DEFAULT_CURSOR_COLOR);
+                    addIntConfig(CFG_CURSOR_COLOR, DEFAULT_CURSOR_COLOR) && addStringConfig(CFG_CURSOR_BLEND_MODE, DEFAULT_CURSOR_BLEND_MODE) &&
+                    addFloatConfig(CFG_CURSOR_FOLLOW_DELAY, DEFAULT_CURSOR_FOLLOW_DELAY) && addFloatConfig(CFG_CURSOR_STRETCH, DEFAULT_CURSOR_STRETCH) &&
+                    addFloatConfig(CFG_CURSOR_TRAIL, DEFAULT_CURSOR_TRAIL) && addFloatConfig(CFG_CURSOR_STRETCH_SPEED, DEFAULT_CURSOR_STRETCH_SPEED);
 
     if (!ok)
         throw std::runtime_error("failed to register liquidglass config values");

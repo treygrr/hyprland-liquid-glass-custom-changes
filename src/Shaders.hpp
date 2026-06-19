@@ -41,8 +41,33 @@ uniform float cursorIntensity;
 uniform float cursorRefraction;
 uniform vec3 cursorColor;
 uniform float cursorColorAlpha;
+uniform int cursorBlendMode; // 0 normal, 1 darken, 2 multiply, 3 lighten, 4 screen, 5 overlay, 6 add
+uniform vec2 cursorStretchDir; // normalized travel direction in this surface's pixel space (0 if still)
+uniform float cursorStretch;   // elongation of the dome along travel (0 = round)
+uniform float cursorTrail;     // extra elongation behind the head -> comet tail (0 = symmetric)
 
 layout(location = 0) out vec4 fragColor;
+
+// Photoshop-style blend of the glass pixel (base) with cursorColor (blend).
+// Codes must match cursorBlendModeCode() in Config.hpp.
+vec3 blendCursor(vec3 base, vec3 blend, int mode) {
+    if (mode == 1)
+        return min(base, blend);                            // darken
+    if (mode == 2)
+        return base * blend;                                // multiply
+    if (mode == 3)
+        return max(base, blend);                            // lighten
+    if (mode == 4)
+        return 1.0 - (1.0 - base) * (1.0 - blend);          // screen
+    if (mode == 5) {                                        // overlay
+        vec3 lo = 2.0 * base * blend;
+        vec3 hi = 1.0 - 2.0 * (1.0 - base) * (1.0 - blend);
+        return mix(lo, hi, step(0.5, base));
+    }
+    if (mode == 6)
+        return min(base + blend, vec3(1.0));                // add (linear dodge)
+    return blend;                                           // 0 normal: paint toward color
+}
 
 float roundedBoxSdf(vec2 point, vec2 halfSize, float cornerRadius) {
     vec2 q = abs(point) - halfSize + vec2(cornerRadius);
@@ -93,11 +118,27 @@ void main() {
     vec2 cursorOffset = vec2(0.0);
     if (cursorRadius > 0.5) {
         vec2 toCursor = pixel - cursorPos;
-        float cDist = length(toCursor);
+
+        // Warp into the travel frame so the dome elongates along motion and trails behind.
+        // Dividing the along-travel coordinate makes the dome physically reach further in
+        // that axis; the rear half (behind the head) gets the extra `cursorTrail` -> comet.
+        vec2 warped = toCursor;
+        if (dot(cursorStretchDir, cursorStretchDir) > 0.5) {
+            vec2 dir = cursorStretchDir;
+            vec2 perpv = vec2(-dir.y, dir.x);
+            float along = dot(toCursor, dir);
+            float perp = dot(toCursor, perpv);
+            float stretchHere = along < 0.0 ? (cursorStretch + cursorTrail) : cursorStretch;
+            along /= (1.0 + stretchHere);
+            warped = dir * along + perpv * perp;
+        }
+
+        float cDist = length(warped);
         float cn = clamp(cDist / cursorRadius, 0.0, 1.0);
         cursorBump = 1.0 - cn;
         cursorBump = cursorBump * cursorBump * (3.0 - 2.0 * cursorBump); // smoothstep dome
-        vec2 cDir = cDist > 0.0001 ? toCursor / cDist : vec2(0.0);
+        float rawDist = length(toCursor);
+        vec2 cDir = rawDist > 0.0001 ? toCursor / rawDist : vec2(0.0);
         float lensProfile = 4.0 * cn * (1.0 - cn);                       // 0 at centre & edge, peak mid
         cursorOffset = cDir * lensProfile * cursorRefraction * cursorRadius * 0.25;
     }
@@ -117,10 +158,12 @@ void main() {
     color *= vec3(glassTint);
     color = mix(color, color * tintColor, clamp(tintAlpha, 0.0, 1.0));
 
-    // Soft highlight under the cursor: blend the glass toward cursorColor with the
-    // dome falloff. A light color brightens, a dark color darkens (so black works).
-    if (cursorRadius > 0.5)
-        color = mix(color, cursorColor, clamp(cursorBump * cursorIntensity * cursorColorAlpha, 0.0, 1.0));
+    // Cursor-following effect: blend the glass toward cursorColor using the selected
+    // blend mode, weighted by the dome falloff. Strength = dome * intensity * alpha.
+    if (cursorRadius > 0.5) {
+        vec3 blended = blendCursor(color, cursorColor, cursorBlendMode);
+        color = mix(color, blended, clamp(cursorBump * cursorIntensity * cursorColorAlpha, 0.0, 1.0));
+    }
 
     float materialAlpha = clamp(glassOpacity / 0.78, 0.0, 1.0);
     fragColor = vec4(clamp(color, 0.0, 1.0), materialAlpha * shapeAlpha * layerMask);

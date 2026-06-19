@@ -39,6 +39,10 @@ bool CShaderManager::compileGlassShader() {
     glassUniforms.cursorRefraction = glGetUniformLocation(program, "cursorRefraction");
     glassUniforms.cursorColor = glGetUniformLocation(program, "cursorColor");
     glassUniforms.cursorColorAlpha = glGetUniformLocation(program, "cursorColorAlpha");
+    glassUniforms.cursorBlendMode = glGetUniformLocation(program, "cursorBlendMode");
+    glassUniforms.cursorStretchDir = glGetUniformLocation(program, "cursorStretchDir");
+    glassUniforms.cursorStretch = glGetUniformLocation(program, "cursorStretch");
+    glassUniforms.cursorTrail = glGetUniformLocation(program, "cursorTrail");
 
     return true;
 }

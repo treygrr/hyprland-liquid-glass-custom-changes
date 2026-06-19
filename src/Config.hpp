@@ -55,6 +55,13 @@ inline constexpr const char* CFG_CURSOR_RADIUS = "plugin:liquidglass:cursor_radi
 inline constexpr const char* CFG_CURSOR_INTENSITY = "plugin:liquidglass:cursor_intensity";   // highlight strength
 inline constexpr const char* CFG_CURSOR_REFRACTION = "plugin:liquidglass:cursor_refraction"; // lens distortion strength
 inline constexpr const char* CFG_CURSOR_COLOR = "plugin:liquidglass:cursor_color";           // 0xRRGGBBAA highlight tint
+inline constexpr const char* CFG_CURSOR_BLEND_MODE = "plugin:liquidglass:cursor_blend_mode"; // how cursor_color blends: normal|darken|multiply|lighten|screen|overlay|add
+
+// Liquid cursor motion: the dome lags behind the pointer, then stretches + trails along travel.
+inline constexpr const char* CFG_CURSOR_FOLLOW_DELAY = "plugin:liquidglass:cursor_follow_delay";   // lag time constant, seconds (0 = snap)
+inline constexpr const char* CFG_CURSOR_STRETCH = "plugin:liquidglass:cursor_stretch";             // elongation along motion at full speed
+inline constexpr const char* CFG_CURSOR_TRAIL = "plugin:liquidglass:cursor_trail";                 // extra tail length behind the head
+inline constexpr const char* CFG_CURSOR_STRETCH_SPEED = "plugin:liquidglass:cursor_stretch_speed"; // pointer speed (px/s) that yields full stretch
 
 inline constexpr const char* DEFAULT_EXCLUDE_CLASSES = "";
 inline constexpr const char* DEFAULT_LAYER_NAMESPACES = "quickshell";
@@ -86,6 +93,11 @@ inline constexpr float DEFAULT_CURSOR_RADIUS = 220.0f;
 inline constexpr float DEFAULT_CURSOR_INTENSITY = 0.50f;
 inline constexpr float DEFAULT_CURSOR_REFRACTION = 0.60f;
 inline constexpr Hyprlang::INT DEFAULT_CURSOR_COLOR = 0xffffff66; // soft white, ~40% alpha
+inline constexpr const char* DEFAULT_CURSOR_BLEND_MODE = "normal";
+inline constexpr float DEFAULT_CURSOR_FOLLOW_DELAY = 0.045f; // ~45ms lag — slight
+inline constexpr float DEFAULT_CURSOR_STRETCH = 0.45f;       // up to ~45% longer along travel
+inline constexpr float DEFAULT_CURSOR_TRAIL = 0.55f;         // a touch more tail behind the head
+inline constexpr float DEFAULT_CURSOR_STRETCH_SPEED = 1800.0f;
 
 inline std::unordered_map<std::string, SP<Config::Values::CIntValue>> g_intConfigValues;
 inline std::unordered_map<std::string, SP<Config::Values::CFloatValue>> g_floatConfigValues;
@@ -154,6 +166,26 @@ inline bool enabled() {
 
 inline bool cursorEnabled() {
     return configInt(CFG_CURSOR_ENABLED, DEFAULT_CURSOR_ENABLED) != 0;
+}
+
+// Maps the cursor_blend_mode config string to the int code the shader switches on.
+// Keep these codes in sync with blendCursor() in Shaders.hpp.
+inline int cursorBlendModeCode() {
+    std::string m = configString(CFG_CURSOR_BLEND_MODE, DEFAULT_CURSOR_BLEND_MODE);
+    std::transform(m.begin(), m.end(), m.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    if (m == "darken")
+        return 1;
+    if (m == "multiply")
+        return 2;
+    if (m == "lighten")
+        return 3;
+    if (m == "screen")
+        return 4;
+    if (m == "overlay")
+        return 5;
+    if (m == "add" || m == "additive" || m == "linear_dodge")
+        return 6;
+    return 0; // "normal" (and any unrecognized value): paint toward cursor_color
 }
 
 inline float windowOpacity() {

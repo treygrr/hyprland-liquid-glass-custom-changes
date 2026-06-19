@@ -74,6 +74,53 @@ Notes:
 - The cursor-to-surface coordinate mapping assumes a normal (non-rotated/non-flipped) monitor transform.
 - Some starting points: cool-blue glow `cursor_color = 0x7fb8ffaa`; subtle `cursor_intensity = 0.25, cursor_refraction = 0.3`; chunky magnifier `cursor_radius = 320, cursor_refraction = 1.0`.
 
+### Cursor highlight blend mode
+
+`cursor_color` no longer just paints toward a color — `cursor_blend_mode` chooses how it composites onto the glass underneath, so the same color can darken, brighten, or pop contrast.
+
+```ini
+plugin:liquidglass {
+    cursor_blend_mode = darken   # normal | darken | multiply | lighten | screen | overlay | add
+}
+```
+
+| Mode | Effect |
+| --- | --- |
+| `normal` | Paints toward `cursor_color` (original behavior). |
+| `darken` / `multiply` | Pulls the area under the cursor darker (`multiply` is stronger). Pair with a dark `cursor_color`. |
+| `lighten` / `screen` | Brightens — a glow. Pair with a light `cursor_color` like `0xffffffff`. |
+| `overlay` | Boosts contrast: darks down, lights up. |
+| `add` | Additive glow (linear dodge). |
+
+The `cursor_color` alpha byte stays the strength knob in every mode. An unrecognized value falls back to `normal`.
+
+### Liquid cursor motion
+
+Makes the highlight feel like a blob of liquid: it **lags** behind the pointer, then **elongates** along the direction of travel and drags a **trail** behind the head, settling back to a round dome when the pointer stops. The faster you move, the more it stretches.
+
+```ini
+plugin:liquidglass {
+    cursor_follow_delay  = 0.045    # lag time constant, seconds (0 = snap, no lag)
+    cursor_stretch       = 0.45     # elongation along travel at full speed (0 = stays round)
+    cursor_trail         = 0.55     # extra tail length behind the head (0 = symmetric stretch)
+    cursor_stretch_speed = 1800.0   # pointer speed (px/s) at which stretch + trail reach max
+}
+```
+
+| Option | Default | Notes |
+| --- | ---: | --- |
+| `cursor_follow_delay` | `0.045` | How long the dome takes to catch up to the pointer (exponential ease time constant, seconds). Higher = more lag/drift. `0` snaps instantly (original behavior). |
+| `cursor_stretch` | `0.45` | Maximum elongation along the travel axis, as a fraction of the radius, reached at `cursor_stretch_speed`. `0` keeps the dome round. |
+| `cursor_trail` | `0.55` | Additional length added to the **rear** half only, so the shape becomes a comet/teardrop instead of a symmetric ellipse. `0` stretches evenly front and back. |
+| `cursor_stretch_speed` | `1800.0` | Pointer speed (logical px/s) at which `cursor_stretch`/`cursor_trail` hit full strength. Lower = stretches from gentler movement; higher = needs a fast flick. |
+
+How it works: the plugin keeps a smoothed cursor position and velocity across frames. The position eases toward the real pointer (the lag); the velocity sets the stretch direction and — scaled by speed — the amount. Because the effect only repaints on pointer motion, the plugin re-damages a cursor-sized region for the few frames it takes to settle after you stop, so the dome finishes easing back to centered/round instead of freezing mid-drift.
+
+Notes:
+- All four are read live every frame — tune them with `hyprctl reload`, no rebuild.
+- Set `cursor_stretch = 0` and `cursor_trail = 0` (or `cursor_follow_delay = 0`) to opt out of the liquid motion while keeping the highlight.
+- Like the rest of the cursor effect, this assumes a non-rotated monitor transform.
+
 ## Requirements
 
 - Hyprland with plugin support
