@@ -6,6 +6,47 @@ The effect is rendered as a window decoration under normal client surfaces and a
 
 ![LiquidGlass preview](assets/preview.png)
 
+## Enhancements (this fork)
+
+This is a fork of [0xdilo/hyprland-liquid-glass](https://github.com/0xdilo/hyprland-liquid-glass) with added features on top of the original plugin. All credit for the base plugin and the Shoji-style glass material goes to the original author (see the rest of this README and the License section). This section documents only what this fork adds.
+
+### Cursor-following refraction + highlight
+
+A soft "lens" that tracks the mouse pointer across every glassed surface (windows and matched layer-shell surfaces like a bar, launcher, or notifications). It layers two effects centred on the cursor:
+
+- **Refraction** — the glass gently bends/magnifies under the pointer using a smooth dome falloff (no hard ring).
+- **Highlight** — an additive tinted glow centred on the pointer.
+
+To keep it tracking smoothly, the plugin listens for pointer motion and damages a cursor-sized region each move, so only the area around the pointer repaints (and only while the mouse is actually moving). The effect is independent of `layer_distortion_overrides`, so it shows at full strength even on surfaces whose base distortion is dialed down.
+
+#### Config
+
+All options live under `plugin:liquidglass:` alongside the originals.
+
+```ini
+plugin:liquidglass {
+    cursor_enabled    = 1           # 0 disables the whole effect
+    cursor_radius     = 220.0       # lens size, in logical pixels
+    cursor_intensity  = 0.5         # highlight glow strength (0 = no glow)
+    cursor_refraction = 0.6         # how hard the glass bends under the cursor (0 = highlight only)
+    cursor_color      = 0xffffff66  # highlight tint, RRGGBBAA (alpha scales the glow)
+}
+```
+
+| Option | Default | Notes |
+| --- | ---: | --- |
+| `cursor_enabled` | `1` | Master toggle for the cursor effect. `0` disables both the refraction and the highlight. |
+| `cursor_radius` | `220.0` | Radius of the lens influence, in logical pixels. Scales with monitor scale automatically. |
+| `cursor_intensity` | `0.5` | Strength of the additive highlight glow. `0` removes the glow and leaves only refraction. |
+| `cursor_refraction` | `0.6` | Strength of the lens distortion under the cursor. `0` removes the bend and leaves only the highlight. |
+| `cursor_color` | `0xffffff66` | Highlight tint as `RRGGBBAA`. The alpha byte scales the glow on top of `cursor_intensity`. |
+
+These values are read live every frame, so changing them only needs `hyprctl reload` — no rebuild. A rebuild (`make`) is only required when changing the C++/shader source itself.
+
+Notes:
+- The cursor-to-surface coordinate mapping assumes a normal (non-rotated/non-flipped) monitor transform.
+- Some starting points: cool-blue glow `cursor_color = 0x7fb8ffaa`; subtle `cursor_intensity = 0.25, cursor_refraction = 0.3`; chunky magnifier `cursor_radius = 320, cursor_refraction = 1.0`.
+
 ## Requirements
 
 - Hyprland with plugin support
