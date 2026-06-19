@@ -140,6 +140,11 @@ static bool shouldInjectLayerGlass(PHLLS layer, PHLMONITOR monitor, bool popups,
         !isIncludedLayer(layer))
         return false;
 
+    // Skip glass while the layer (e.g. wofi) is opening or closing; sampling the
+    // framebuffer mid fade-in/out produces a white flash.
+    if (layer->m_fadingOut || layer->m_alpha->isBeingAnimated())
+        return false;
+
     return !isFullscreenLayerOverlay(layer, monitor);
 }
 

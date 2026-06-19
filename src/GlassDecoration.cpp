@@ -33,11 +33,17 @@ void CGlassDecoration::draw(PHLMONITOR monitor, float const& alpha) {
     if (alpha <= 0.001F)
         return;
 
-    g_pHyprRenderer->m_renderPass.add(makeUnique<CGlassPassElement>(CGlassPassElement::SGlassPassData{this, alpha}));
-
     const auto window = m_window.lock();
     if (!window)
         return;
+
+    // Skip glass while the window's fade (open or close) animation runs. Sampling
+    // the framebuffer mid fade-in/out produces a white flash. The fade alpha is
+    // separate from position/size, so moves and resizes keep their glass.
+    if (window->m_fadingOut || window->m_alpha.isBeingAnimated())
+        return;
+
+    g_pHyprRenderer->m_renderPass.add(makeUnique<CGlassPassElement>(CGlassPassElement::SGlassPassData{this, alpha}));
 
     const auto workspace = window->m_workspace;
     const bool workspaceAnimating = workspace && !window->m_pinned && workspace->m_renderOffset->isBeingAnimated();
@@ -71,6 +77,10 @@ void CGlassDecoration::renderPass(PHLMONITOR monitor, float alpha) {
 
     const auto window = m_window.lock();
     if (!window || !monitor || !g_pHyprRenderer->m_renderData.currentFB)
+        return;
+
+    // No glass while the window's fade (open/close) animation runs (white flash).
+    if (window->m_fadingOut || window->m_alpha.isBeingAnimated())
         return;
 
     auto box = LiquidGlass::WindowGeometry::computeWindowBox(window, monitor);

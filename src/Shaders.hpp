@@ -117,9 +117,10 @@ void main() {
     color *= vec3(glassTint);
     color = mix(color, color * tintColor, clamp(tintAlpha, 0.0, 1.0));
 
-    // Soft additive highlight under the cursor (uses the same dome falloff).
+    // Soft highlight under the cursor: blend the glass toward cursorColor with the
+    // dome falloff. A light color brightens, a dark color darkens (so black works).
     if (cursorRadius > 0.5)
-        color += cursorColor * (cursorBump * cursorIntensity * cursorColorAlpha);
+        color = mix(color, cursorColor, clamp(cursorBump * cursorIntensity * cursorColorAlpha, 0.0, 1.0));
 
     float materialAlpha = clamp(glassOpacity / 0.78, 0.0, 1.0);
     fragColor = vec4(clamp(color, 0.0, 1.0), materialAlpha * shapeAlpha * layerMask);
